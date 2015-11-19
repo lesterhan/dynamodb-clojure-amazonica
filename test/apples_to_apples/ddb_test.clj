@@ -1,5 +1,6 @@
 (ns apples-to-apples.ddb-test
   (:require [apples-to-apples.ddb :refer :all]
+            [amazonica.aws.dynamodbv2 :as dyn]
             [midje.sweet :refer :all]))
 
 (facts "table creation"

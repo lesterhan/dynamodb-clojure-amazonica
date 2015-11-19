@@ -37,3 +37,64 @@
       :provisioned-throughput {:read-capacity-units  50
                                :write-capacity-units 50})
     ))
+
+(defn get-item-from-table [table-name id]
+  (dyn/get-item
+    local-connection-opts
+    :table-name (name table-name)
+    :key {:id {:n id}}))
+
+(defn put-item-into-table [table-name item]
+  (dyn/put-item
+    local-connection-opts
+    :table-name (name table-name)
+    :item item))
+
+
+(defn- seq-to-put-requests [data-collection]
+  (->> data-collection
+       (mapv (fn [data] {:put-request {:item data}}))
+       doall))
+
+(defn populate-table [table-name data]
+  (loop [collection data]
+    (when (> (count collection) 0)
+      (dyn/batch-write-item
+        (connections-opts)
+        :request-items
+        {(name table-name)
+         (seq-to-put-requests (take 25 collection))})
+      (recur (drop 25 collection)))))
+
+
+(defn parallel-get-all-from-table [table-name]
+  (let [total-segments 2000
+        base-opts {:table-name (name table-name)}
+        _ (println "getting all items from" (name table-name))
+        result-set (time
+                     (pmap #(dyn/scan (connections-opts)
+                                      (assoc base-opts
+                                        :total-segments total-segments
+                                        :segment %))
+                           (range 0 total-segments)))
+
+        aggregated-results (apply concat (map :items result-set))
+        _ (println "retrieved " (count aggregated-results) " records")]
+    aggregated-results))
+
+(defn parallel-get-all-from-table-with [table-name key value type]
+  (let [total-segments 2000
+        base-opts {:table-name                  (name table-name)
+                   :filter-expression           "#key_placeholder = :value_placeholder"
+                   :expression-attribute-names  {"#key_placeholder" (name key)}
+                   :expression-attribute-values {":value_placeholder" {type value}}}
+        _ (println "getting all items from" (name table-name))
+        result-set (time
+                     (pmap #(dyn/scan (connections-opts)
+                                      (assoc base-opts
+                                        :total-segments total-segments
+                                        :segment %))
+                           (range 0 total-segments)))
+        aggregated-results (apply concat (map :items result-set))
+        _ (println "retrieved " (count aggregated-results) " records")]
+    aggregated-results))
