@@ -78,7 +78,7 @@
                                         :segment %))
                            (range 0 total-segments)))
 
-        aggregated-results (apply concat (map :items result-set))
+        aggregated-results (mapcat :items result-set)
         _ (println "retrieved " (count aggregated-results) " records")]
     aggregated-results))
 
@@ -95,6 +95,6 @@
                                         :total-segments total-segments
                                         :segment %))
                            (range 0 total-segments)))
-        aggregated-results (apply concat (map :items result-set))
+        aggregated-results (mapcat :items result-set)
         _ (println "retrieved " (count aggregated-results) " records")]
     aggregated-results))
