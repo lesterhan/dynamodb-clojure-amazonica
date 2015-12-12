@@ -52,23 +52,23 @@
 
 (defn- seq-to-put-requests [data-collection]
   (->> data-collection
-       (mapv (fn [data] {:put-request {:item data}}))
+       (mapv (fn [data] {:put-request {:item data}}))       ;*1*
        doall))
 
 (defn populate-table [table-name data]
   (loop [collection data]
     (when (> (count collection) 0)
       (dyn/batch-write-item
-        (connections-opts)
+        (local-connection-opts)
         :request-items
         {(name table-name)
-         (seq-to-put-requests (take 25 collection))})
-      (recur (drop 25 collection)))))
+         (seq-to-put-requests (take 25 collection))})       ;*2*
+      (recur (drop 25 collection)))))                       ;*3*
 
 (defn parallel-get-all-from-table [table-name]
   (let [total-segments 2000
         base-opts {:table-name (name table-name)}
-        result-set (doall (pmap #(dyn/scan (connections-opts)
+        result-set (doall (pmap #(dyn/scan (local-connection-opts)
                                            (assoc base-opts
                                              :total-segments total-segments
                                              :segment %))
@@ -83,7 +83,7 @@
                    :filter-expression           "#key_placeholder = :value_placeholder"
                    :expression-attribute-names  {"#key_placeholder" (name key)}
                    :expression-attribute-values {":value_placeholder" {type value}}}
-        result-set (doall (pmap #(dyn/scan (connections-opts)
+        result-set (doall (pmap #(dyn/scan (local-connection-opts)
                                            (assoc base-opts
                                              :total-segments total-segments
                                              :segment %))
