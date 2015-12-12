@@ -66,27 +66,24 @@
       (recur (drop 25 collection)))))                       ;*3*
 
 (defn parallel-get-all-from-table [table-name]
-  (let [total-segments 2000
-        base-opts {:table-name (name table-name)}
+  (let [total-segments 150                                  ;*1*
+        options {:table-name     (name table-name)
+                 :total-segments total-segments}            ;*2*
         result-set (doall (pmap #(dyn/scan (local-connection-opts)
-                                           (assoc base-opts
-                                             :total-segments total-segments
-                                             :segment %))
-                                (range 0 total-segments)))
-
-        aggregated-results (mapcat :items result-set)]
-    aggregated-results))
+                                           (assoc options
+                                             :segment %))   ;*3*
+                                (range 0 total-segments)))] ;*4*
+    (doall (mapcat :items result-set))))                    ;*5*
 
 (defn parallel-get-all-from-table-with [table-name key value type]
-  (let [total-segments 2000
+  (let [total-segments 150
         base-opts {:table-name                  (name table-name)
-                   :filter-expression           "#key_placeholder = :value_placeholder"
-                   :expression-attribute-names  {"#key_placeholder" (name key)}
-                   :expression-attribute-values {":value_placeholder" {type value}}}
+                   :filter-expression           "#key_placeholder = :value_placeholder" ;*1*
+                   :expression-attribute-names  {"#key_placeholder" (name key)}         ;*2*
+                   :expression-attribute-values {":value_placeholder" {type value}}     ;*3*
+                   :total-segments              total-segments}
         result-set (doall (pmap #(dyn/scan (local-connection-opts)
                                            (assoc base-opts
-                                             :total-segments total-segments
                                              :segment %))
-                                (range 0 total-segments)))
-        aggregated-results (mapcat :items result-set)]
-    aggregated-results))
+                                (range 0 total-segments)))]
+    (doall (mapcat :items result-set))))
