@@ -7,5 +7,5 @@
        (delete-table :test-table)
 
        (fact "confirm created table exists"
-             (ensure-table :test-table)
+             (ensure-table-exist :test-table)
              (table-exist? :test-table) => true))

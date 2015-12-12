@@ -27,7 +27,7 @@
       local-connection-opts
       {:table-name (name table-name)})))
 
-(defn ensure-table [table-name]
+(defn ensure-table-exist [table-name]
   (when-not (table-exist? table-name)
     (dyn/create-table
       local-connection-opts
@@ -70,7 +70,6 @@
 (defn parallel-get-all-from-table [table-name]
   (let [total-segments 2000
         base-opts {:table-name (name table-name)}
-        _ (println "getting all items from" (name table-name))
         result-set (time
                      (pmap #(dyn/scan (connections-opts)
                                       (assoc base-opts
@@ -78,8 +77,7 @@
                                         :segment %))
                            (range 0 total-segments)))
 
-        aggregated-results (mapcat :items result-set)
-        _ (println "retrieved " (count aggregated-results) " records")]
+        aggregated-results (mapcat :items result-set)]
     aggregated-results))
 
 (defn parallel-get-all-from-table-with [table-name key value type]
@@ -88,13 +86,11 @@
                    :filter-expression           "#key_placeholder = :value_placeholder"
                    :expression-attribute-names  {"#key_placeholder" (name key)}
                    :expression-attribute-values {":value_placeholder" {type value}}}
-        _ (println "getting all items from" (name table-name))
         result-set (time
                      (pmap #(dyn/scan (connections-opts)
                                       (assoc base-opts
                                         :total-segments total-segments
                                         :segment %))
                            (range 0 total-segments)))
-        aggregated-results (mapcat :items result-set)
-        _ (println "retrieved " (count aggregated-results) " records")]
+        aggregated-results (mapcat :items result-set)]
     aggregated-results))
