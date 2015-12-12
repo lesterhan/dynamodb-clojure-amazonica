@@ -50,7 +50,6 @@
     :table-name (name table-name)
     :item item))
 
-
 (defn- seq-to-put-requests [data-collection]
   (->> data-collection
        (mapv (fn [data] {:put-request {:item data}}))
@@ -66,16 +65,14 @@
          (seq-to-put-requests (take 25 collection))})
       (recur (drop 25 collection)))))
 
-
 (defn parallel-get-all-from-table [table-name]
   (let [total-segments 2000
         base-opts {:table-name (name table-name)}
-        result-set (time
-                     (pmap #(dyn/scan (connections-opts)
-                                      (assoc base-opts
-                                        :total-segments total-segments
-                                        :segment %))
-                           (range 0 total-segments)))
+        result-set (doall (pmap #(dyn/scan (connections-opts)
+                                           (assoc base-opts
+                                             :total-segments total-segments
+                                             :segment %))
+                                (range 0 total-segments)))
 
         aggregated-results (mapcat :items result-set)]
     aggregated-results))
@@ -86,11 +83,10 @@
                    :filter-expression           "#key_placeholder = :value_placeholder"
                    :expression-attribute-names  {"#key_placeholder" (name key)}
                    :expression-attribute-values {":value_placeholder" {type value}}}
-        result-set (time
-                     (pmap #(dyn/scan (connections-opts)
-                                      (assoc base-opts
-                                        :total-segments total-segments
-                                        :segment %))
-                           (range 0 total-segments)))
+        result-set (doall (pmap #(dyn/scan (connections-opts)
+                                           (assoc base-opts
+                                             :total-segments total-segments
+                                             :segment %))
+                                (range 0 total-segments)))
         aggregated-results (mapcat :items result-set)]
     aggregated-results))
